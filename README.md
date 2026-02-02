@@ -134,7 +134,7 @@ LR_CC = LR_UC + LR_IND ~ χ²(2)
 
 ---
 
-## 🔧 Metode de Calibrare
+##  Metode de Calibrare
 
 Modelul oferă 4 metode pentru estimarea parametrilor:
 
@@ -302,7 +302,7 @@ MSM_VAR_MODEL/
 
 ---
 
-## ⚖️ Limitări și Disclaimer
+##  Limitări și Disclaimer
 
 ### Ce poate face modelul:
 -  Cuantifică riscul curent bazat pe volatilitatea recentă
@@ -360,5 +360,6 @@ git push origin feature/NumeFeature
 <p align="center">
   <i>Proiect dezvoltat cu  pentru înțelegerea riscului financiar</i>
 </p>
+
 
 
