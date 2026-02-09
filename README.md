@@ -10,7 +10,7 @@ Acest proiect implementează un **sistem de măsurare a riscului de piață** ca
 
 > *"Cât de mult pot pierde mâine, în cel mai rău caz rezonabil?"*
 
-** Clarificare importantă:** Acesta este un model de **măsurare a riscului**, NU de predicție a crash-urilor. Nu prezice când va scădea piața, ci **cuantifică nivelul curent de risc** bazat pe volatilitatea recentă.
+ Clarificare importantă: Acesta este un model de **măsurare a riscului**, NU de predicție a crash-urilor. Nu prezice când va scădea piața, ci **cuantifică nivelul curent de risc** bazat pe volatilitatea recentă.
 
 ---
 
@@ -360,6 +360,7 @@ git push origin feature/NumeFeature
 <p align="center">
   <i>Proiect dezvoltat cu  pentru înțelegerea riscului financiar</i>
 </p>
+
 
 
 
