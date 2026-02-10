@@ -17,6 +17,8 @@ from api.models import (
     CalibrateResponse,
     CalibrationMetrics,
     ErrorResponse,
+    NewsFeedResponse,
+    NewsMarketSignalModel,
     RegimeResponse,
     RegimeStreamMessage,
     TailProbResponse,
@@ -286,3 +288,82 @@ async def stream_regime(ws: WebSocket, token: str = Query(...)):
     except Exception as exc:
         logger.exception("WebSocket error for token=%s", token)
         await ws.close(code=1011, reason=str(exc)[:120])
+
+
+# ── News Intelligence Endpoints ──
+
+
+def _current_regime_state() -> int:
+    """Get regime state from any calibrated model, default 3 (Normal)."""
+    for m in _model_store.values():
+        probs = np.asarray(m["filter_probs"].iloc[-1])
+        return int(np.argmax(probs)) + 1
+    return 3
+
+
+@router.get("/news/feed", response_model=NewsFeedResponse)
+def get_news_feed(
+    regime_state: int = Query(None, ge=1, le=10, description="Override regime state"),
+    max_items: int = Query(50, ge=1, le=200),
+):
+    """
+    Full news intelligence feed: fetch from all sources, score, deduplicate, aggregate.
+    If a model is calibrated, uses its regime state for impact amplification.
+    """
+    from news_intelligence import fetch_news_intelligence
+
+    rs = regime_state if regime_state is not None else _current_regime_state()
+    try:
+        result = fetch_news_intelligence(
+            regime_state=rs, max_items=max_items,
+        )
+    except Exception as exc:
+        logger.exception("News feed fetch failed")
+        raise HTTPException(status_code=502, detail=f"News fetch error: {exc}")
+
+    return NewsFeedResponse(**result)
+
+
+@router.get("/news/sentiment", response_model=NewsFeedResponse)
+def get_news_sentiment(
+    regime_state: int = Query(None, ge=1, le=10),
+    max_items: int = Query(20, ge=1, le=100),
+):
+    """
+    Same as /news/feed but with smaller default page size — intended for
+    quick sentiment checks without the full feed.
+    """
+    from news_intelligence import fetch_news_intelligence
+
+    rs = regime_state if regime_state is not None else _current_regime_state()
+    try:
+        result = fetch_news_intelligence(
+            regime_state=rs, max_items=max_items,
+        )
+    except Exception as exc:
+        logger.exception("News sentiment fetch failed")
+        raise HTTPException(status_code=502, detail=f"News fetch error: {exc}")
+
+    return NewsFeedResponse(**result)
+
+
+@router.get("/news/signal", response_model=NewsMarketSignalModel)
+def get_news_signal(
+    regime_state: int = Query(None, ge=1, le=10),
+):
+    """
+    Returns only the aggregate MarketSignal — direction, strength, EWMA,
+    momentum, entropy, confidence. Lightweight endpoint for trading bots.
+    """
+    from news_intelligence import fetch_news_intelligence
+
+    rs = regime_state if regime_state is not None else _current_regime_state()
+    try:
+        result = fetch_news_intelligence(
+            regime_state=rs, max_items=30,
+        )
+    except Exception as exc:
+        logger.exception("News signal fetch failed")
+        raise HTTPException(status_code=502, detail=f"News fetch error: {exc}")
+
+    return NewsMarketSignalModel(**result["signal"])

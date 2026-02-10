@@ -126,3 +126,65 @@ def get_regime_name(state_idx: int, num_states: int) -> str:
         return REGIME_NAMES.get(state_idx, f"State {state_idx}")
     return f"State {state_idx}/{num_states}"
 
+
+
+# ── News Intelligence Models ──
+
+class NewsSentimentModel(BaseModel):
+    score: float = Field(..., description="Continuous sentiment [-1, 1]")
+    confidence: float = Field(..., description="Confidence [0, 1]")
+    label: str = Field(..., description="Bullish / Bearish / Neutral")
+    bull_weight: float
+    bear_weight: float
+    entropy: float = Field(..., description="Information entropy of sentiment distribution")
+
+
+class NewsItemModel(BaseModel):
+    id: str
+    source: str
+    api_source: str
+    title: str
+    body: str
+    url: str
+    timestamp: float
+    assets: list[str]
+    sentiment: NewsSentimentModel
+    impact: float = Field(..., description="Impact score [0, 10]")
+    novelty: float = Field(..., description="Novelty [0, 1]")
+    source_credibility: float
+    time_decay: float
+    regime_multiplier: float
+
+
+class NewsMarketSignalModel(BaseModel):
+    sentiment_ewma: float = Field(..., description="EWMA sentiment [-1, 1]")
+    sentiment_momentum: float = Field(..., description="Sentiment momentum ΔS")
+    entropy: float = Field(..., description="Consensus entropy")
+    confidence: float = Field(..., description="Aggregate confidence [0, 1]")
+    direction: str = Field(..., description="LONG / SHORT / NEUTRAL")
+    strength: float = Field(..., description="Signal strength [0, 1]")
+    n_sources: int
+    n_items: int
+    bull_pct: float
+    bear_pct: float
+    neutral_pct: float
+
+
+class NewsSourceCounts(BaseModel):
+    cryptocompare: int = 0
+    newsdata: int = 0
+    cryptopanic: int = 0
+
+
+class NewsMeta(BaseModel):
+    errors: list[str] = []
+    elapsed_ms: int = 0
+    total: int = 0
+    regime_state: Optional[int] = None
+
+
+class NewsFeedResponse(BaseModel):
+    items: list[NewsItemModel]
+    signal: NewsMarketSignalModel
+    source_counts: NewsSourceCounts
+    meta: NewsMeta
