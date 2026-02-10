@@ -15,6 +15,9 @@ matplotlib>=3.4.0
 # Financial Data Download
 yfinance>=0.2.0
 
+# GARCH / EGARCH / GJR-GARCH Models
+arch>=5.3.0
+
 # Solana DeFi Data
 httpx>=0.24.0
 
