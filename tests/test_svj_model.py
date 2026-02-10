@@ -146,6 +146,9 @@ class TestSVJVaR:
         expected = {
             "var_svj", "var_diffusion_only", "var_jump_component",
             "expected_shortfall", "jump_contribution_pct", "alpha",
+            "confidence", "n_simulations", "current_variance", "avg_jumps_per_day",
+        }
+        assert expected == set(result.keys())
 
 
 # ── decompose_risk ───────────────────────────────────────────────────
@@ -247,7 +250,3 @@ class TestModelComparisonIntegration:
         from model_comparison import compare_models
         df = compare_models(returns_normal, models=["msm", "svj"])
         assert "svj" in df.index.str.lower().values or "SVJ-Bates" in df.index.values
-            "confidence", "n_simulations", "current_variance", "avg_jumps_per_day",
-        }
-        assert expected == set(result.keys())
-
