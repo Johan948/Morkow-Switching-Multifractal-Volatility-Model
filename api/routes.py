@@ -33,6 +33,13 @@ from api.models import (
     EVTCalibrateResponse,
     EVTDiagnosticsResponse,
     EVTVaRResponse,
+    HawkesCalibrateRequest,
+    HawkesCalibrateResponse,
+    HawkesClusterItem,
+    HawkesClustersResponse,
+    HawkesIntensityResponse,
+    HawkesVaRRequest,
+    HawkesVaRResponse,
     MarginalVaRResponse,
     ModelMetricsRow,
     NewsFeedResponse,
@@ -67,6 +74,7 @@ _model_store: dict[str, dict] = {}
 _portfolio_store: dict[str, dict] = {}
 _evt_store: dict[str, dict] = {}  # EVT calibration results per token
 _copula_store: dict[str, dict] = {}  # Copula fit results per portfolio key
+_hawkes_store: dict[str, dict] = {}  # Hawkes calibration results per token
 
 
 def _get_model(token: str) -> dict:

@@ -508,3 +508,70 @@ class EVTDiagnosticsResponse(BaseModel):
     backtest: list[EVTBacktestRow]
     comparison: list[VaRComparisonRow]
     timestamp: datetime
+
+
+# ── Hawkes Process Models ──────────────────────────────────────────────
+
+
+class HawkesCalibrateRequest(BaseModel):
+    token: str = Field(..., description="Token key from _model_store (must be calibrated)")
+    threshold_percentile: float = Field(5.0, gt=0.0, lt=50.0)
+    use_absolute: bool = Field(True, description="Use |returns| for both tails")
+
+
+class HawkesCalibrateResponse(BaseModel):
+    token: str
+    mu: float = Field(..., description="Baseline intensity (background event rate)")
+    alpha: float = Field(..., description="Excitation magnitude per event")
+    beta: float = Field(..., description="Decay rate of excitation")
+    branching_ratio: float = Field(..., description="α/β — must be < 1 for stationarity")
+    half_life: float = Field(..., description="Time for excitation to halve (ln2/β)")
+    stationary: bool
+    n_events: int
+    log_likelihood: float
+    aic: float
+    bic: float
+    threshold: float
+    timestamp: datetime
+
+
+class HawkesIntensityResponse(BaseModel):
+    token: str
+    current_intensity: float
+    baseline: float
+    intensity_ratio: float
+    peak_intensity: float
+    mean_intensity: float
+    timestamp: datetime
+
+
+class HawkesClusterItem(BaseModel):
+    cluster_id: int
+    start_time: float
+    end_time: float
+    n_events: int
+    duration: float
+    peak_intensity: float
+
+
+class HawkesClustersResponse(BaseModel):
+    token: str
+    clusters: list[HawkesClusterItem]
+    n_clusters: int
+    timestamp: datetime
+
+
+class HawkesVaRRequest(BaseModel):
+    token: str = Field(..., description="Token key from _model_store")
+    confidence: float = Field(95.0, gt=50.0, le=99.99)
+    max_multiplier: float = Field(3.0, gt=1.0, le=10.0)
+
+
+class HawkesVaRResponse(BaseModel):
+    adjusted_var: float
+    base_var: float
+    multiplier: float
+    intensity_ratio: float
+    capped: bool
+    confidence: float
+    timestamp: datetime

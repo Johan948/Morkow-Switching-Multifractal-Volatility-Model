@@ -148,6 +148,38 @@ def fit_hawkes(
     beta0 = 1.0
 
     best_result = None
+    best_nll = float("inf")
+
+    starts = [
+        [mu0, alpha0, beta0],
+        [mu0 * 0.3, 0.5, 2.0],
+        [mu0 * 1.5, 0.1, 0.5],
+        [mu0, 0.7, 3.0],
+    ]
+
+    for x0 in starts:
+        try:
+            result = minimize(
+                _log_likelihood,
+                x0=x0,
+                args=(events, T),
+                method="L-BFGS-B",
+                bounds=[(1e-6, None), (1e-6, None), (1e-6, None)],
+                options={"maxiter": 500},
+            )
+            if result.fun < best_nll:
+                best_nll = result.fun
+                best_result = result
+        except Exception:
+            continue
+
+    if best_result is None:
+        raise RuntimeError("Hawkes MLE optimization failed for all starting points")
+
+    mu, alpha, beta = best_result.x
+    branching_ratio = alpha / beta
+    ll = -best_nll
+    n_params = 3
 
     return {
         "mu": float(mu),
@@ -243,36 +275,138 @@ def hawkes_var_adjustment(
         "intensity_ratio": float(ratio),
         "capped": bool(ratio > max_multiplier),
     }
-    best_nll = float("inf")
 
-    starts = [
-        [mu0, alpha0, beta0],
-        [mu0 * 0.3, 0.5, 2.0],
-        [mu0 * 1.5, 0.1, 0.5],
-        [mu0, 0.7, 3.0],
-    ]
 
-    for x0 in starts:
-        try:
-            result = minimize(
-                _log_likelihood,
-                x0=x0,
-                args=(events, T),
-                method="L-BFGS-B",
-                bounds=[(1e-6, None), (1e-6, None), (1e-6, None)],
-                options={"maxiter": 500},
-            )
-            if result.fun < best_nll:
-                best_nll = result.fun
-                best_result = result
-        except Exception:
-            continue
+def detect_clusters(
+    events: np.ndarray,
+    params: dict,
+    gap_threshold: float | None = None,
+) -> list[dict]:
+    """
+    Identify temporal clusters of extreme events.
 
-    if best_result is None:
-        raise RuntimeError("Hawkes MLE optimization failed for all starting points")
+    Events separated by less than gap_threshold are grouped into the same cluster.
+    Default gap = 2 × half_life (events within two decay periods are related).
 
-    mu, alpha, beta = best_result.x
-    branching_ratio = alpha / beta
-    ll = -best_nll
-    n_params = 3
+    Args:
+        events: Sorted event times array.
+        params: Output of fit_hawkes() (needs beta for half_life).
+        gap_threshold: Max gap between events in same cluster.
+                       If None, uses 2 × half_life.
 
+    Returns:
+        List of cluster dicts with start_time, end_time, n_events,
+        duration, peak_intensity.
+    """
+    if len(events) == 0:
+        return []
+
+    events = np.sort(events)
+
+    if gap_threshold is None:
+        beta = params["beta"]
+        gap_threshold = 2.0 * np.log(2) / beta
+
+    clusters: list[dict] = []
+    cluster_start = events[0]
+    cluster_events = [events[0]]
+
+    for i in range(1, len(events)):
+        if events[i] - events[i - 1] <= gap_threshold:
+            cluster_events.append(events[i])
+        else:
+            if len(cluster_events) >= 2:
+                t_eval = np.array(cluster_events)
+                intensity = _compute_intensity(
+                    t_eval, (params["mu"], params["alpha"], params["beta"]), t_eval
+                )
+                clusters.append({
+                    "cluster_id": len(clusters),
+                    "start_time": float(cluster_events[0]),
+                    "end_time": float(cluster_events[-1]),
+                    "n_events": len(cluster_events),
+                    "duration": float(cluster_events[-1] - cluster_events[0]),
+                    "peak_intensity": float(np.max(intensity)),
+                })
+            cluster_start = events[i]
+            cluster_events = [events[i]]
+
+    # Handle last cluster
+    if len(cluster_events) >= 2:
+        t_eval = np.array(cluster_events)
+        intensity = _compute_intensity(
+            t_eval, (params["mu"], params["alpha"], params["beta"]), t_eval
+        )
+        clusters.append({
+            "cluster_id": len(clusters),
+            "start_time": float(cluster_events[0]),
+            "end_time": float(cluster_events[-1]),
+            "n_events": len(cluster_events),
+            "duration": float(cluster_events[-1] - cluster_events[0]),
+            "peak_intensity": float(np.max(intensity)),
+        })
+
+    return clusters
+
+
+def simulate_hawkes(
+    params: dict,
+    T: float,
+    seed: int = 42,
+) -> dict:
+    """
+    Simulate Hawkes process via Ogata's thinning algorithm.
+
+    Args:
+        params: Dict with mu, alpha, beta.
+        T: Simulation horizon.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Dict with event_times, n_events, intensity_path (sampled).
+    """
+    rng = np.random.default_rng(seed)
+    mu, alpha, beta = params["mu"], params["alpha"], params["beta"]
+
+    event_times: list[float] = []
+    t = 0.0
+
+    # Upper bound on intensity starts at mu
+    lambda_bar = mu
+
+    while t < T:
+        # Draw next candidate time from exponential with rate lambda_bar
+        u = rng.uniform()
+        dt = -np.log(u) / lambda_bar
+        t += dt
+
+        if t >= T:
+            break
+
+        # Compute actual intensity at candidate time
+        lambda_t = mu
+        for t_i in event_times:
+            lambda_t += alpha * np.exp(-beta * (t - t_i))
+
+        # Accept/reject
+        if rng.uniform() <= lambda_t / lambda_bar:
+            event_times.append(t)
+            # Update upper bound: intensity just jumped by alpha
+            lambda_bar = lambda_t + alpha
+        else:
+            lambda_bar = lambda_t
+
+    events_arr = np.array(event_times) if event_times else np.array([])
+
+    # Sample intensity at regular points for visualization
+    n_sample = min(500, max(100, int(T)))
+    t_sample = np.linspace(0, T, n_sample)
+    intensity_path = _compute_intensity(events_arr, (mu, alpha, beta), t_sample)
+
+    return {
+        "event_times": events_arr,
+        "n_events": len(event_times),
+        "T": T,
+        "intensity_t": t_sample.tolist(),
+        "intensity_path": intensity_path.tolist(),
+    }
