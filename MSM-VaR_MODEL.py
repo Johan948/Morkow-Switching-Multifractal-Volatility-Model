@@ -4,12 +4,16 @@ MSM-based volatility forecast + VaR(5%) + Kupiec & Christoffersen backtests
 + Tail probabilities (1, 3, 5 zile) condiționat pe regimul curent.
 """
 
+import logging
+
 import numpy as np
 import pandas as pd
 import yfinance as yf
 import matplotlib.pyplot as plt
 
 from scipy.stats import norm, chi2, t as student_t
+
+logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------
 # 1. Helper: extragere prețuri din yfinance
@@ -479,7 +483,8 @@ def calibrate_msm_advanced(
             
             if verbose:
                 print(f"     MLE step: σ_low={sigma_low:.3f}, σ_high={sigma_high:.3f}, p_stay={p_stay:.3f}")
-        except:
+        except Exception as e:
+            logger.warning("MLE optimization failed, using empirical fallback: %s", e)
             sigma_low, sigma_high, p_stay = std_r * 0.35, std_r * 3.0, 0.97
         
         # Pas 2: Ajustare ITERATIVĂ pentru VaR breach rate

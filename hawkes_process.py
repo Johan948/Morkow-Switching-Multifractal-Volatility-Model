@@ -169,7 +169,8 @@ def fit_hawkes(
             if result.fun < best_nll:
                 best_nll = result.fun
                 best_result = result
-        except Exception:
+        except Exception as e:
+            logger.debug("Hawkes MLE attempt failed: %s", e)
             continue
 
     if best_result is None:

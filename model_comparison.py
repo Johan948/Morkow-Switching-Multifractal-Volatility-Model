@@ -5,6 +5,7 @@ Compares MSM-VaR against GARCH(1,1), EGARCH(1,1), GJR-GARCH(1,1,1),
 Rolling Window, and EWMA (RiskMetrics) using standardized backtesting.
 """
 
+import logging
 import math
 import warnings
 from importlib import import_module
@@ -13,6 +14,8 @@ import numpy as np
 import pandas as pd
 from arch import arch_model
 from scipy.stats import norm
+
+logger = logging.getLogger(__name__)
 
 msm_module = import_module("MSM-VaR_MODEL")
 
@@ -52,7 +55,8 @@ def _arch_expanding_forecast(
                 res = am.fit(disp="off", show_warning=False)
                 fcast = res.forecast(horizon=1)
                 forecasts[t] = float(np.sqrt(fcast.variance.values[-1, 0]))
-        except Exception:
+        except Exception as e:
+            logger.debug("GARCH fit failed at t=%d: %s", t, e)
             if t > MIN_OBS and np.isfinite(forecasts[t - 1]):
                 forecasts[t] = forecasts[t - 1]
 

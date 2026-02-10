@@ -16,10 +16,14 @@ from __future__ import annotations
 import math
 from typing import Literal
 
+import logging
+
 import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.optimize import minimize
+
+logger = logging.getLogger(__name__)
 
 
 def fit_gpd(
@@ -191,7 +195,8 @@ def _threshold_variance_stability(
             if sc > 0:
                 thresholds.append(u)
                 xis.append(float(c))
-        except Exception:
+        except Exception as e:
+            logger.debug("GPD fit failed at threshold %.4f: %s", u, e)
             continue
 
     if len(thresholds) < 3:

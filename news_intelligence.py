@@ -394,7 +394,8 @@ def _parse_ts(date_str: str) -> float:
         else:
             dt = datetime.strptime(date_str + " +0000", "%Y-%m-%d %H:%M:%S %z")
         return dt.timestamp() * 1000
-    except Exception:
+    except Exception as e:
+        logger.debug("Failed to parse date '%s': %s", date_str, e)
         return 0.0
 
 
@@ -434,8 +435,8 @@ def _transform_cp(raw: dict, idx: int, recent: list[str],
             from datetime import datetime
             ts_ms = datetime.fromisoformat(
                 raw["published_at"].replace("Z", "+00:00")).timestamp() * 1000
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to parse published_at timestamp: %s", e)
 
     sent = compute_sentiment(title, body, src_name)
     cred = _get_source_credibility(src_name)
