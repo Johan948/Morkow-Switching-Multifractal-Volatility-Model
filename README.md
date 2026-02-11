@@ -26,9 +26,10 @@ Financial markets exhibit non-stationary dynamics characterized by abrupt regime
 6. [TypeScript SDK](#6-typescript-sdk)
 7. [Results and Validation](#7-results-and-validation)
 8. [Reproducibility](#8-reproducibility)
-9. [Limitations](#9-limitations)
-10. [References](#10-references)
-11. [License and Authors](#11-license-and-authors)
+9. [Docker](#9-docker)
+10. [Limitations](#10-limitations)
+11. [References](#11-references)
+12. [License and Authors](#12-license-and-authors)
 
 ---
 
@@ -356,6 +357,9 @@ cortexagent/
 │   ├── test_api_endpoints.py     # 12 tests
 │   └── test_guardian.py          # 13 tests
 ├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
 └── LICENSE
 ```
 
@@ -650,7 +654,66 @@ The demo script uses `np.random.seed(42)` for reproducible synthetic data genera
 
 ---
 
-## 9. Limitations
+## 9. Docker
+
+Run the entire Risk Engine with a single command — no Python setup required.
+
+### Quick Start
+
+```bash
+git clone https://github.com/cortex-agent/cortexagent.git
+cd cortexagent
+docker compose up --build
+```
+
+The API is available at `http://localhost:8000`. Verify with:
+
+```bash
+curl http://localhost:8000/health
+# {"status":"ok","service":"cortex-risk-engine","version":"1.1.0"}
+```
+
+### Connect with the SDK
+
+```typescript
+import { RiskEngineClient } from "cortex-risk-sdk";
+
+const risk = new RiskEngineClient({
+  baseUrl: "http://localhost:8000",
+  retries: 3,
+  validateResponses: true,
+});
+
+await risk.calibrate({ token: "SOL-USD", num_states: 5 });
+const regime = await risk.regime("SOL-USD");
+const gate = await risk.guardianAssess({
+  token: "SOL-USD",
+  trade_size_usd: 50_000,
+  direction: "long",
+});
+
+if (gate.approved) {
+  console.log(`Trade approved — size $${gate.recommended_size}`);
+}
+```
+
+### Development Mode
+
+Hot-reload with local file changes:
+
+```bash
+docker compose --profile dev up --build
+```
+
+### Run Tests Inside Container
+
+```bash
+docker compose run --rm risk-engine python -m pytest tests/ -v
+```
+
+---
+
+## 10. Limitations
 
 1. **Regime count selection**: The number of states K is fixed a priori (default 5). Model selection criteria (BIC) can guide this choice, but no automatic K-selection is implemented.
 2. **Stationarity assumption**: The MSM transition matrix is time-homogeneous. Structural breaks in the data-generating process (e.g., protocol upgrades) may require recalibration.
@@ -663,7 +726,7 @@ The demo script uses `np.random.seed(42)` for reproducible synthetic data genera
 
 ---
 
-## 10. References
+## 11. References
 
 1. Calvet, L. E., & Fisher, A. J. (2004). "How to Forecast Long-Run Volatility: Regime Switching and the Estimation of Multifractal Processes." *Journal of Financial Econometrics*, 2(1), 49–83.
 
@@ -691,7 +754,7 @@ The demo script uses `np.random.seed(42)` for reproducible synthetic data genera
 
 ---
 
-## 11. License and Authors
+## 12. License and Authors
 
 ### License
 

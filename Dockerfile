@@ -1,0 +1,48 @@
+# ---- Build stage: install dependencies ----
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# ---- Runtime stage: minimal image ----
+FROM python:3.11-slim
+
+LABEL maintainer="Cortex AI <dev@cortex-agent.xyz>"
+LABEL org.opencontainers.image.source="https://github.com/cortex-agent/cortexagent"
+LABEL org.opencontainers.image.description="CortexAgent Risk Engine — multi-model volatility and risk management API"
+
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy application code
+COPY api/ ./api/
+COPY tests/ ./tests/
+COPY MSM-VaR_MODEL.py .
+COPY extreme_value_theory.py .
+COPY hawkes_process.py .
+COPY svj_model.py .
+COPY copula_portfolio_var.py .
+COPY rough_volatility.py .
+COPY multifractal_analysis.py .
+COPY portfolio_var.py .
+COPY regime_analytics.py .
+COPY model_comparison.py .
+COPY news_intelligence.py .
+COPY guardian.py .
+COPY solana_data_adapter.py .
+COPY pytest.ini .
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+

@@ -15,20 +15,20 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-logger = logging.getLogger("msm_api")
+logger = logging.getLogger("cortex_risk_engine")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("MSM-VaR API starting up")
+    logger.info("CortexAgent Risk Engine starting up")
     yield
-    logger.info("MSM-VaR API shutting down")
+    logger.info("CortexAgent Risk Engine shutting down")
 
 
 app = FastAPI(
-    title="MSM-VaR API",
-    description="Markov Switching Multifractal volatility model — regime detection, VaR, and forecasting for Solana DeFi and traditional markets.",
-    version="1.0.0",
+    title="CortexAgent Risk Engine",
+    description="Multi-model volatility and risk management API — MSM regime detection, EVT, SVJ, Hawkes, copula VaR, rough volatility, and Guardian risk veto for autonomous DeFi agents on Solana.",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -45,7 +45,7 @@ app.include_router(router, prefix="/api/v1", tags=["msm"])
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "msm-var-api"}
+    return {"status": "ok", "service": "cortex-risk-engine", "version": "1.1.0"}
 
 
 if __name__ == "__main__":

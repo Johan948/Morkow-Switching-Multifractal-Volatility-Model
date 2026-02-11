@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+venv/
+.venv/
+*.egg
+
+# SDK (not needed in Python container)
+sdk/node_modules/
+sdk/dist/
+sdk/.npmrc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Data & docs (not needed at runtime)
+pdfs/
+data/
+*.md
+!requirements.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# State files
+state-*.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
