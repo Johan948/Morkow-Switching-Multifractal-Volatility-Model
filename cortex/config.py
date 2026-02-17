@@ -4,6 +4,73 @@ Every value is backed by an environment variable with a sensible default so the
 system works out-of-the-box while remaining fully configurable in production.
 """
 
+__all__ = [
+    "validate_config",
+    # Guardian
+    "GUARDIAN_WEIGHTS",
+    "CIRCUIT_BREAKER_THRESHOLD",
+    "APPROVAL_THRESHOLD",
+    "GUARDIAN_KELLY_FRACTION",
+    "GUARDIAN_KELLY_MIN_TRADES",
+    "GUARDIAN_AUTO_DEBATE_THRESHOLD",
+    # Scoring
+    "EVT_SCORE_FLOOR",
+    "EVT_SCORE_RANGE",
+    "SVJ_BASE_CAP",
+    "REGIME_BASE_MAX",
+    "ALAMS_SCORE_VAR_FLOOR",
+    "ALAMS_SCORE_VAR_CEILING",
+    "CRISIS_REGIME_HAIRCUT",
+    "NEAR_CRISIS_REGIME_HAIRCUT",
+    # News & sentiment
+    "SOURCE_CREDIBILITY",
+    "DEFAULT_CREDIBILITY",
+    "HALF_LIFE_HOURS",
+    "DECAY_LAMBDA",
+    # Data sources
+    "BIRDEYE_BASE",
+    "DRIFT_DATA_API",
+    "RAYDIUM_API",
+    "PYTH_HERMES_URL",
+    "PYTH_BUFFER_DEPTH",
+    "PYTH_DEFAULT_WATCHLIST",
+    "DEXSCREENER_BASE_URL",
+    "DEXSCREENER_TIMEOUT",
+    "DEXSCREENER_MAX_RETRIES",
+    "DEXSCREENER_CACHE_TTL",
+    "DEXSCREENER_MIN_LIQUIDITY_USD",
+    # Helius / on-chain
+    "HELIUS_API_KEY",
+    "HELIUS_RPC_URL",
+    "ONCHAIN_HTTP_TIMEOUT",
+    "ONCHAIN_CACHE_TTL",
+    # Execution
+    "EXECUTION_ENABLED",
+    "SIMULATION_MODE",
+    "TRADING_MODE",
+    "JUPITER_API_URL",
+    "JUPITER_SLIPPAGE_BPS",
+    # Circuit breaker
+    "CB_THRESHOLD",
+    "CB_CONSECUTIVE_CHECKS",
+    "CB_COOLDOWN_SECONDS",
+    "CB_STRATEGIES",
+    # Debate
+    "DEBATE_MAX_ROUNDS",
+    "DEBATE_TIMEOUT_MS",
+    # Engine selection
+    "EVT_ENGINE",
+    "FBM_ENGINE",
+    "HAWKES_ENGINE",
+    "COPULA_ENGINE",
+    "PORTFOLIO_OPT_ENGINE",
+    # Observability
+    "LOG_FORMAT",
+    "LOG_LEVEL",
+    "METRICS_ENABLED",
+    "API_VERSION",
+]
+
 import json
 import math
 import os
