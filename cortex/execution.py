@@ -12,6 +12,14 @@ Private keys never leave the local process — they are passed through
 from the caller (API layer or agent) and used only for local signing.
 """
 
+__all__ = [
+    "preflight_check",
+    "execute_trade",
+    "record_execution_result",
+    "get_execution_log",
+    "get_execution_stats",
+]
+
 import logging
 import time
 from typing import Any
