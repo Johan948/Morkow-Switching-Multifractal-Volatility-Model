@@ -5,6 +5,7 @@ Outputs DataFrames compatible with the existing yfinance-based pipeline.
 """
 
 __all__ = [
+    "is_available",
     "TOKEN_REGISTRY",
     "fetch_ohlcv",
     "fetch_funding_rates",
@@ -29,6 +30,11 @@ from cortex.data.rpc_failover import get_resilient_pool
 logger = logging.getLogger(__name__)
 
 _pool = get_resilient_pool()
+
+
+def is_available() -> bool:
+    """Check if Birdeye API key is configured."""
+    return bool(os.environ.get("BIRDEYE_API_KEY", ""))
 
 # Well-known SPL token mint addresses
 TOKEN_REGISTRY: dict[str, str] = {
