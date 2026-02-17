@@ -1357,7 +1357,7 @@ class RealizedSpreadResponse(BaseModel):
 class OnchainLVaRRequest(BaseModel):
     token: str = Field(..., description="Token key from _model_store (must be calibrated)")
     token_address: str | None = Field(None, description="Solana token mint for on-chain spread")
-    pair_address: str | None = Field(None, description="Axiom pair address for live spread")
+    pair_address: str | None = Field(None, description="DEX pair address for live spread")
     confidence: float = Field(95.0, gt=50.0, le=99.99)
     position_value: float = Field(100_000.0, gt=0)
     holding_period: int = Field(1, ge=1, le=30)
@@ -1369,7 +1369,7 @@ class OnchainLVaRResponse(BaseModel):
     base_var: float
     liquidity_cost_pct: float
     spread_pct: float
-    spread_source: str = Field(..., description="onchain|axiom|roll|default")
+    spread_source: str = Field(..., description="onchain|dexscreener|roll|default")
     by_dex: list[DexSpreadItem] | None = None
     confidence: float
     holding_period: int

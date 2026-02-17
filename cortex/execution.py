@@ -120,7 +120,7 @@ def execute_trade(
     """Execute a trade through the full safety pipeline.
 
     Args:
-        private_key: Solana wallet private key (passed to Axiom SDK).
+        private_key: Solana wallet private key (passed to Jupiter SDK).
         token_mint: SPL token mint address.
         direction: "buy" or "sell".
         amount: SOL amount (buy) or percentage (sell).

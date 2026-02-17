@@ -1,6 +1,6 @@
 """DexScreener DEX data adapter for the Cortex Risk Engine.
 
-Drop-in replacement for cortex/data/axiom.py. Uses the official, free,
+Uses the official, free,
 keyless DexScreener REST API (https://docs.dexscreener.com/api/reference).
 
 Provides:
