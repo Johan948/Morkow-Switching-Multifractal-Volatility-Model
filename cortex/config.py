@@ -69,6 +69,9 @@ __all__ = [
     "LOG_LEVEL",
     "METRICS_ENABLED",
     "API_VERSION",
+    # DX-Research: Prospect Theory
+    "PROSPECT_THEORY_NEWS_ENABLED",
+    "PROSPECT_THEORY_LOSS_AVERSION",
 ]
 
 import json
@@ -344,6 +347,10 @@ TAIL_DEPENDENCE_THRESHOLD = float(os.environ.get("TAIL_DEPENDENCE_THRESHOLD", "0
 # Task 9: Agent ONNX Confidence → Guardian Composite
 AGENT_CONFIDENCE_ENABLED = os.environ.get("AGENT_CONFIDENCE_ENABLED", "true").lower() == "true"
 AGENT_CONFIDENCE_VETO_THRESHOLD = float(os.environ.get("AGENT_CONFIDENCE_VETO_THRESHOLD", "0.3"))
+
+# DX-Research Task 1: Prospect Theory — Asymmetric News Weighting
+PROSPECT_THEORY_NEWS_ENABLED = os.environ.get("PROSPECT_THEORY_NEWS_ENABLED", "true").lower() == "true"
+PROSPECT_THEORY_LOSS_AVERSION = float(os.environ.get("PROSPECT_THEORY_LOSS_AVERSION", "1.75"))
 
 # ── Background News Collector ──
 NEWS_COLLECTOR_INTERVAL_SECONDS = int(os.environ.get("NEWS_COLLECTOR_INTERVAL_SECONDS", "30"))
