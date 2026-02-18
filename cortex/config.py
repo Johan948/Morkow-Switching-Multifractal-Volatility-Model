@@ -462,6 +462,9 @@ def validate_config() -> list[str]:
     if abs(weight_sum - 1.0) > 0.05:
         warnings.append(f"GUARDIAN_WEIGHTS sum to {weight_sum:.3f}, expected ~1.0")
 
+    if NARRATOR_ENABLED and not OPENAI_API_KEY:
+        warnings.append("NARRATOR_ENABLED=true but OPENAI_API_KEY is empty")
+
     if warnings:
         import logging
         _log = logging.getLogger(__name__)
