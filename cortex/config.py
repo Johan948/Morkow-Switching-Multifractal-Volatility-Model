@@ -64,6 +64,13 @@ __all__ = [
     "HAWKES_ENGINE",
     "COPULA_ENGINE",
     "PORTFOLIO_OPT_ENGINE",
+    # Narrator (LLM)
+    "NARRATOR_ENABLED",
+    "NARRATOR_MODEL",
+    "NARRATOR_MAX_TOKENS",
+    "NARRATOR_TEMPERATURE",
+    "NARRATOR_TIMEOUT",
+    "OPENAI_API_KEY",
     # Observability
     "LOG_FORMAT",
     "LOG_LEVEL",
@@ -368,6 +375,15 @@ LIQUIDITY_SNAPSHOT_RETENTION_HOURS = int(os.environ.get("LIQUIDITY_SNAPSHOT_RETE
 LIQUIDITY_WATCHLIST: list[str] = json.loads(
     os.environ.get("LIQUIDITY_WATCHLIST", "[]")
 )
+
+# ── Narrator (LLM-powered narrative engine) ──
+
+NARRATOR_ENABLED = os.environ.get("NARRATOR_ENABLED", "false").lower() == "true"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+NARRATOR_MODEL = os.environ.get("NARRATOR_MODEL", "gpt-4o-mini")
+NARRATOR_MAX_TOKENS = int(os.environ.get("NARRATOR_MAX_TOKENS", "1024"))
+NARRATOR_TEMPERATURE = float(os.environ.get("NARRATOR_TEMPERATURE", "0.3"))
+NARRATOR_TIMEOUT = float(os.environ.get("NARRATOR_TIMEOUT", "30.0"))
 
 # ── Model Versioning ──
 MODEL_VERSION_HISTORY_SIZE = int(os.environ.get("MODEL_VERSION_HISTORY_SIZE", "3"))
