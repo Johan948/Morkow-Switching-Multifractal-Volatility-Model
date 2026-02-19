@@ -1492,6 +1492,33 @@ class HawkesOnchainRiskResponse(BaseModel):
     timestamp: datetime
 
 
+# ── Token Supply / Tokenomics ─────────────────────────────────────
+
+
+class TokenSupplyStaking(BaseModel):
+    total_staked: str = "0"
+    total_staked_formatted: float = 0.0
+    reward_rate: str = "0"
+    reward_rate_formatted: float = 0.0
+
+
+class TokenSupplyTreasury(BaseModel):
+    sol_balance: float = 0.0
+    address: str = ""
+
+
+class TokenSupplyResponse(BaseModel):
+    symbol: str = "CRTX"
+    decimals: int = 9
+    total_supply: str = "100000000000000000"
+    total_supply_formatted: float = 100_000_000.0
+    mint: str = ""
+    staking: TokenSupplyStaking = TokenSupplyStaking()
+    treasury: TokenSupplyTreasury = TokenSupplyTreasury()
+    programs: dict[str, str] = {}
+    timestamp: datetime
+
+
 # ── Token Info (Token Card) ───────────────────────────────────────
 
 
