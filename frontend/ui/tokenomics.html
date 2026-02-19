@@ -62,7 +62,7 @@
         }
 
         /* === TOKENOMICS STYLES === */
-        .tk-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); }
+        .tk-metrics { display: grid; grid-template-columns: repeat(6, 1fr); border-bottom: 1px solid var(--border); }
         .tk-metric { padding: 1rem; border-right: 1px solid var(--border); text-align: center; }
         .tk-metric:last-child { border-right: none; }
         .tk-metric-label { font-size: 0.6rem; text-transform: uppercase; color: var(--dim); margin-bottom: 0.25rem; }
@@ -113,7 +113,7 @@
         .tk-dex-type { font-size: 0.5rem; color: var(--dim); }
 
         @media (max-width: 960px) {
-            .tk-metrics { grid-template-columns: repeat(2, 1fr); }
+            .tk-metrics { grid-template-columns: repeat(3, 1fr); }
             .tk-alloc-wrap { grid-template-columns: 1fr; }
             .tk-donut { border-right: none; border-bottom: 1px solid var(--border); }
             .tk-utility-grid { grid-template-columns: repeat(2, 1fr); }
@@ -162,6 +162,16 @@
                 <div class="tk-metric-label">Treasury Balance</div>
                 <div class="tk-metric-value" id="treasuryBalanceValue">--</div>
                 <div class="tk-metric-sub" id="treasuryAddrSub">Loading...</div>
+            </div>
+            <div class="tk-metric">
+                <div class="tk-metric-label">Holders</div>
+                <div class="tk-metric-value" id="holderCountValue">--</div>
+                <div class="tk-metric-sub" id="holderRiskSub">Loading...</div>
+            </div>
+            <div class="tk-metric">
+                <div class="tk-metric-label">Mint Address</div>
+                <div class="tk-metric-value" id="mintAddrValue" style="font-size:0.7rem;word-break:break-all">--</div>
+                <div class="tk-metric-sub" id="mintAddrSub">On-chain</div>
             </div>
         </div>
 
@@ -230,6 +240,40 @@
             <div class="tk-stack-item"><div class="tk-stack-label">Treasury</div><div class="tk-stack-value">Squads Protocol</div></div>
             <div class="tk-stack-item"><div class="tk-stack-label">Vesting</div><div class="tk-stack-value">Streamflow</div></div>
             <div class="tk-stack-item"><div class="tk-stack-label">Token Deployer</div><div class="tk-stack-value">SPL CLI</div></div>
+        </div>
+
+        <!-- Holder Distribution -->
+        <div class="section-header"><span>Holder Distribution</span><span class="text-dim" id="holderDistLabel">On-chain via Helius DAS</span></div>
+        <div class="tk-metrics" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="tk-metric">
+                <div class="tk-metric-label">Top 10 Holders</div>
+                <div class="tk-metric-value" id="top10PctValue">--</div>
+                <div class="tk-metric-sub">% of supply</div>
+            </div>
+            <div class="tk-metric">
+                <div class="tk-metric-label">Top 50 Holders</div>
+                <div class="tk-metric-value" id="top50PctValue">--</div>
+                <div class="tk-metric-sub">% of supply</div>
+            </div>
+            <div class="tk-metric">
+                <div class="tk-metric-label">HHI Index</div>
+                <div class="tk-metric-value" id="hhiValue">--</div>
+                <div class="tk-metric-sub">Concentration index</div>
+            </div>
+            <div class="tk-metric">
+                <div class="tk-metric-label">Concentration Risk</div>
+                <div class="tk-metric-value" id="concRiskValue">--</div>
+                <div class="tk-metric-sub">Based on top-10 share</div>
+            </div>
+        </div>
+        <div id="topHoldersTable" style="border-bottom: 1px solid var(--border);"></div>
+
+        <!-- Program Addresses -->
+        <div class="section-header"><span>Program Addresses</span><span class="text-dim">On-chain</span></div>
+        <div class="tk-stack-grid" id="programAddresses">
+            <div class="tk-stack-item"><div class="tk-stack-label">Token Mint</div><div class="tk-stack-value" id="progToken" style="font-size:0.6rem;word-break:break-all">--</div></div>
+            <div class="tk-stack-item"><div class="tk-stack-label">Treasury</div><div class="tk-stack-value" id="progTreasury" style="font-size:0.6rem;word-break:break-all">--</div></div>
+            <div class="tk-stack-item"><div class="tk-stack-label">Staking</div><div class="tk-stack-value" id="progStaking" style="font-size:0.6rem;word-break:break-all">--</div></div>
         </div>
 
         <!-- DEX Integrations -->
@@ -451,11 +495,117 @@
             addrSub.textContent = 'Address unavailable';
         }
 
+        // Mint address
+        var mint = data.mint || '';
+        var mintEl = document.getElementById('mintAddrValue');
+        if (mintEl && mint) {
+            mintEl.textContent = mint.slice(0, 6) + '...' + mint.slice(-6);
+            mintEl.title = mint;
+        }
+
+        // Program addresses
+        var progs = data.programs || {};
+        var progToken = document.getElementById('progToken');
+        var progTreasury = document.getElementById('progTreasury');
+        var progStaking = document.getElementById('progStaking');
+        if (progToken && progs.token) { progToken.textContent = progs.token; progToken.title = progs.token; }
+        if (progTreasury && progs.treasury) { progTreasury.textContent = progs.treasury; progTreasury.title = progs.treasury; }
+        if (progStaking && progs.staking) { progStaking.textContent = progs.staking; progStaking.title = progs.staking; }
+
         // Circulating supply: total - staked (simplified on-chain estimate)
         if (ts > 0) {
             var circulating = ts - staked;
             if (circulating < 0) circulating = ts;
             updateCirculatingSupply(circulating, ts);
+        }
+    })();
+
+    // Fetch holder distribution data
+    (async function() {
+        if (typeof CortexAPI === 'undefined') return;
+        var data = await CortexAPI.get('/token/holders');
+        if (!data) return;
+
+        // Holder count in top metrics
+        var countEl = document.getElementById('holderCountValue');
+        if (countEl) countEl.textContent = (data.total_holders || 0).toLocaleString();
+
+        var riskEl = document.getElementById('holderRiskSub');
+        if (riskEl) {
+            var risk = data.concentration_risk || 'unknown';
+            riskEl.textContent = 'Concentration: ' + risk;
+            if (risk === 'critical' || risk === 'high') riskEl.className = 'tk-metric-sub text-red';
+            else if (risk === 'low') riskEl.className = 'tk-metric-sub text-green';
+        }
+
+        // Distribution metrics
+        var top10 = document.getElementById('top10PctValue');
+        if (top10) top10.textContent = (data.top10_pct || 0).toFixed(1) + '%';
+
+        var top50 = document.getElementById('top50PctValue');
+        if (top50) top50.textContent = (data.top50_pct || 0).toFixed(1) + '%';
+
+        var hhi = document.getElementById('hhiValue');
+        if (hhi) hhi.textContent = (data.hhi || 0).toFixed(0);
+
+        var conc = document.getElementById('concRiskValue');
+        if (conc) {
+            var riskLabel = data.concentration_risk || 'unknown';
+            conc.textContent = riskLabel.charAt(0).toUpperCase() + riskLabel.slice(1);
+            if (riskLabel === 'critical' || riskLabel === 'high') conc.style.color = 'var(--red)';
+            else if (riskLabel === 'low') conc.style.color = 'var(--green)';
+        }
+
+        // Top holders table (safe DOM construction)
+        var holders = data.top_holders || [];
+        if (holders.length > 0) {
+            var tableEl = document.getElementById('topHoldersTable');
+            if (!tableEl) return;
+            tableEl.textContent = '';
+
+            // Header row
+            var header = document.createElement('div');
+            header.className = 'tk-alloc-row head';
+            header.style.gridTemplateColumns = '30px 1fr 80px 60px';
+            ['#', 'Wallet', 'Amount', '%'].forEach(function(t, i) {
+                var cell = document.createElement('div');
+                cell.textContent = t;
+                if (i >= 2) cell.style.textAlign = 'right';
+                header.appendChild(cell);
+            });
+            tableEl.appendChild(header);
+
+            // Data rows
+            holders.slice(0, 10).forEach(function(h, i) {
+                var row = document.createElement('div');
+                row.className = 'tk-alloc-row';
+                row.style.gridTemplateColumns = '30px 1fr 80px 60px';
+
+                var idxCell = document.createElement('div');
+                idxCell.textContent = String(i + 1);
+                idxCell.style.color = 'var(--dim)';
+                row.appendChild(idxCell);
+
+                var addrCell = document.createElement('div');
+                var owner = h.owner || '';
+                addrCell.textContent = owner.slice(0, 4) + '...' + owner.slice(-4);
+                addrCell.title = owner;
+                addrCell.style.fontFamily = 'var(--font-mono)';
+                addrCell.style.fontSize = '0.6rem';
+                row.appendChild(addrCell);
+
+                var amtCell = document.createElement('div');
+                amtCell.textContent = (h.amount / 1e9).toLocaleString(undefined, {maximumFractionDigits: 0});
+                amtCell.style.textAlign = 'right';
+                row.appendChild(amtCell);
+
+                var pctCell = document.createElement('div');
+                pctCell.className = 'tk-alloc-pct';
+                pctCell.textContent = (h.pct || 0).toFixed(2) + '%';
+                row.appendChild(pctCell);
+
+                tableEl.appendChild(row);
+            });
         }
     })();
     </script>

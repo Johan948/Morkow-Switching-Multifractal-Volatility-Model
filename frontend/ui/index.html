@@ -4330,6 +4330,14 @@
                 localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(walletState));
                 setWalletUI(walletState);
                 closeModal('walletModal');
+                bindProviderEvents(provider);
+                // Sync with CortexWallet global if loaded
+                if (window.CortexWallet) {
+                    CortexWallet._setActiveProvider(provider);
+                    CortexWallet._setState(walletState);
+                    CortexWallet._bindProviderEvents(provider);
+                    CortexWallet._fireConnect(walletState);
+                }
             } catch (err) {
                 const msg = err.code === 4001 ? 'Connection rejected by user'
                     : err.message || 'Connection failed';
@@ -4339,16 +4347,43 @@
             }
         }
 
+        // Provider event listeners for account changes and disconnects
+        function bindProviderEvents(provider) {
+            if (!provider || !provider.on) return;
+            provider.on('accountChanged', function(publicKey) {
+                if (!publicKey) {
+                    disconnectWallet(new Event('click'));
+                    return;
+                }
+                var address = publicKey.toString();
+                if (walletState) {
+                    walletState.address = address;
+                    localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(walletState));
+                    setWalletUI(walletState);
+                }
+            });
+            provider.on('disconnect', function() {
+                disconnectWallet(new Event('click'));
+            });
+        }
+
         async function disconnectWallet(e) {
-            e.stopPropagation();
-            if (activeProvider && typeof activeProvider.disconnect === 'function') {
-                try { await activeProvider.disconnect(); } catch (_) {}
+            if (e && e.stopPropagation) e.stopPropagation();
+            if (activeProvider) {
+                if (activeProvider.removeListener) {
+                    try { activeProvider.removeListener('accountChanged'); } catch (_) {}
+                    try { activeProvider.removeListener('disconnect'); } catch (_) {}
+                }
+                if (typeof activeProvider.disconnect === 'function') {
+                    try { await activeProvider.disconnect(); } catch (_) {}
+                }
             }
             activeProvider = null;
             walletState = null;
             localStorage.removeItem(WALLET_STORAGE_KEY);
             document.getElementById('walletDropdown').classList.remove('open');
             setWalletUI(null);
+            if (window.CortexWallet) CortexWallet._fireDisconnect();
         }
 
         function copyAddress(e) {
@@ -4400,6 +4435,7 @@
                 walletState = { wallet: parsed.wallet, address: address };
                 localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(walletState));
                 setWalletUI(walletState);
+                bindProviderEvents(provider);
             } catch (_) {
                 // Eager reconnect failed (user hasn't approved) — show stored state anyway
                 try {
