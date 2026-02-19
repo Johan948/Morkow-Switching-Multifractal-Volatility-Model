@@ -150,6 +150,22 @@ def get_pipeline_status():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.get("/execution/status", summary="Get current execution status")
+def get_execution_status():
+    """Return the current execution pipeline state.
+
+    Alias for /execution/pipeline-status — used by the dashboard UI
+    to poll execution state (idle, executing, confirming, etc.).
+    """
+    from cortex.execution import get_pipeline_status as _status
+
+    try:
+        return _status()
+    except Exception as exc:
+        logger.exception("Execution status fetch failed")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.get("/execution/stream", summary="Execution events SSE stream")
 async def execution_sse_stream():
     """SSE endpoint streaming execution pipeline events in real time.

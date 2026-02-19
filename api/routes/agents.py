@@ -251,6 +251,72 @@ def _build_arbitrage(cb_states: list[dict] | None) -> dict:
     }
 
 
+@router.get("/agents/performance", summary="Agent accuracy heatmap data")
+def get_agents_performance():
+    """Return per-agent accuracy broken down by token and timeframe.
+
+    Used by the dashboard heatmap to visualize which agents perform
+    best on which tokens and time horizons.
+    """
+    from cortex.execution import get_execution_log as _log
+
+    entries = _safe(lambda: _log(limit=500), [])
+
+    agent_names = ["momentum", "meanrev", "sentiment", "risk", "arbitrage"]
+    tokens = set()
+    timeframes = {"1h": 3600, "4h": 14400, "1d": 86400, "7d": 604800}
+    now = time.time()
+
+    by_token: dict[str, dict[str, dict]] = {a: {} for a in agent_names}
+    by_timeframe: dict[str, dict[str, dict]] = {a: {tf: {"wins": 0, "total": 0} for tf in timeframes} for a in agent_names}
+
+    for entry in entries:
+        token = entry.get("token", "SOL")
+        agent = entry.get("agent", entry.get("strategy", "momentum"))
+        if agent not in agent_names:
+            agent = agent_names[hash(agent) % len(agent_names)]
+        tokens.add(token)
+
+        is_win = entry.get("status") in ("executed", "simulated", "completed") and entry.get("pnl", 0) >= 0
+        age = now - entry.get("timestamp", now)
+
+        if token not in by_token[agent]:
+            by_token[agent][token] = {"wins": 0, "total": 0}
+        by_token[agent][token]["total"] += 1
+        if is_win:
+            by_token[agent][token]["wins"] += 1
+
+        for tf_name, tf_secs in timeframes.items():
+            if age <= tf_secs:
+                by_timeframe[agent][tf_name]["total"] += 1
+                if is_win:
+                    by_timeframe[agent][tf_name]["wins"] += 1
+
+    def _accuracy(d: dict) -> float | None:
+        if d["total"] == 0:
+            return None
+        return round(d["wins"] / d["total"] * 100, 1)
+
+    heatmap_token = {
+        agent: {tok: _accuracy(stats) for tok, stats in tok_map.items()}
+        for agent, tok_map in by_token.items()
+    }
+    heatmap_timeframe = {
+        agent: {tf: _accuracy(stats) for tf, stats in tf_map.items()}
+        for agent, tf_map in by_timeframe.items()
+    }
+
+    return {
+        "agents": agent_names,
+        "tokens": sorted(tokens) or ["SOL", "BTC", "ETH"],
+        "timeframes": list(timeframes.keys()),
+        "by_token": heatmap_token,
+        "by_timeframe": heatmap_timeframe,
+        "total_entries": len(entries),
+        "timestamp": now,
+    }
+
+
 def _ago(ts: float) -> str:
     diff = max(0, time.time() - ts)
     if diff < 60:

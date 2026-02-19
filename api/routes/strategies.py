@@ -4,7 +4,7 @@ import copy
 import logging
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 router = APIRouter(tags=["strategies"])
 
@@ -50,3 +50,28 @@ def get_strategy_config():
         "timestamp": time.time(),
     }
 
+
+
+
+@router.put("/strategies/{name}/toggle", summary="Toggle strategy enabled state")
+def toggle_strategy(name: str):
+    """Enable or disable a strategy by its key name.
+
+    Flips the 'enabled' flag and updates 'status' accordingly.
+    The change is in-memory only (resets on restart).
+    """
+    from cortex.config import STRATEGY_CONFIG
+
+    for strat in STRATEGY_CONFIG:
+        if strat.get("key") == name or strat.get("name") == name:
+            strat["enabled"] = not strat.get("enabled", True)
+            strat["status"] = "running" if strat["enabled"] else "paused"
+            return {
+                "strategy": strat["key"],
+                "name": strat["name"],
+                "enabled": strat["enabled"],
+                "status": strat["status"],
+                "timestamp": time.time(),
+            }
+
+    raise HTTPException(status_code=404, detail=f"Strategy '{name}' not found")
