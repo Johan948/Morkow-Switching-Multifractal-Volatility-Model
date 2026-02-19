@@ -670,45 +670,18 @@
 
     <script>
     // === 2. ADVERSARIAL DEBATE THEATER ===
-    const DEBATE_SCENARIOS = [
-        {
-            trigger: 'SOL/USDC Long Signal — Momentum Breakout',
-            rounds: [
-                { speaker: 'Trader Agent', role: 'Proposal', text: 'SOL breaking above 20-EMA with volume confirmation. RSI at 62, not overbought. Proposing 5% portfolio LONG at $86.50 with 2x leverage. Target: $92.00 (+6.4%). Stop: $83.20 (-3.8%).', score: 78, scoreLabel: 'Conviction' },
-                { speaker: 'Risk Manager', role: 'Challenge', text: 'Current regime: DISTRIBUTION with 67% confidence. Historical drawdown in distribution phases averages -8.2%. Leverage at 2x amplifies tail risk. VaR(95%) would increase from 3.1% to 5.8%. Recommend reducing to 1.5x or waiting for regime confirmation.', score: 71, scoreLabel: 'Risk Score' },
-                { speaker: 'Trader Agent', role: 'Defense', text: 'Acknowledged regime concern. Modifying: reduce leverage to 1.5x, tighten stop to $84.10 (-2.8%), reduce size to 3.5% portfolio. On-chain data shows whale accumulation — 3 wallets added 45K SOL in last 4h. Sentiment score: +0.34 (mildly bullish).', score: 82, scoreLabel: 'Adjusted' },
-                { speaker: 'Portfolio Mgr', role: 'Decision', text: 'APPROVED with modifications. Position size: 3.5%, leverage: 1.5x, stop: $84.10. Rationale: momentum signal valid but regime uncertainty warrants conservative sizing. Guardian: verify liquidity depth before execution.', score: 85, scoreLabel: 'Final' },
-            ],
-            verdict: 'APPROVED', verdictClass: 'text-green', confidence: 85
-        },
-        {
-            trigger: 'RAY/USDC Short Signal — Mean Reversion',
-            rounds: [
-                { speaker: 'Mean Rev Agent', role: 'Proposal', text: 'RAY/USDC at +2.3σ above 20-day mean. Bollinger Band squeeze releasing to upside — historically reverts within 48h. Proposing 4% SHORT at $0.602 with 2x leverage. Target: $0.555 (-7.8%). Stop: $0.635 (+5.5%).', score: 74, scoreLabel: 'Conviction' },
-                { speaker: 'Risk Manager', role: 'Challenge', text: 'RAY has low liquidity — 24h volume only $12M. Slippage risk on 2x leveraged short is significant. Additionally, RAY governance vote upcoming in 72h — event risk not priced in. Circuit breaker: 2 recent stop-losses on RAY positions.', score: 82, scoreLabel: 'Risk Score' },
-                { speaker: 'Mean Rev Agent', role: 'Defense', text: 'Valid concerns on liquidity. However, Z-score at 2.3 has 89% historical reversion rate within 3 days. Willing to reduce to 1x leverage and 2% size. Governance vote is for fee parameter change — low impact historically.', score: 68, scoreLabel: 'Adjusted' },
-                { speaker: 'Portfolio Mgr', role: 'Decision', text: 'REJECTED. Circuit breaker proximity (2/3 stop-losses) combined with governance event risk and low liquidity creates unfavorable risk/reward. Re-evaluate post governance vote. Mean reversion signal noted for watchlist.', score: 45, scoreLabel: 'Final' },
-            ],
-            verdict: 'REJECTED', verdictClass: 'text-red', confidence: 45
-        },
-        {
-            trigger: 'Cross-DEX Arbitrage — BONK Spread',
-            rounds: [
-                { speaker: 'Arb Agent', role: 'Proposal', text: 'BONK/USDC spread detected: Jupiter $0.0000312 vs Raydium $0.0000318 (1.92% spread). Estimated profit after gas: $142 on $8,000 notional. Execution window: ~4 seconds. Proposing immediate atomic execution.', score: 88, scoreLabel: 'Conviction' },
-                { speaker: 'Risk Manager', role: 'Challenge', text: 'Spread is above threshold (≥0.15%). However, BONK slippage on $8K notional historically 0.8-1.2%. Net profit after slippage may be only $60-80. Gas cost: ~$0.02. Acceptable risk/reward but reduce notional to $5K for safety.', score: 65, scoreLabel: 'Risk Score' },
-                { speaker: 'Arb Agent', role: 'Defense', text: 'Agreed on $5K notional. Adjusted profit estimate: $85-95 after slippage. Execution via Jupiter route optimizer for best fill. Latency to both DEXs: 280ms. Window still open — spread widening to 2.1%.', score: 91, scoreLabel: 'Adjusted' },
-                { speaker: 'Portfolio Mgr', role: 'Decision', text: 'APPROVED — fast track. Atomic execution authorized at $5K notional. Guardian: verify both pool liquidity depths exceed 3x notional before execution. Time-critical — bypass standard approval delay.', score: 92, scoreLabel: 'Final' },
-            ],
-            verdict: 'APPROVED (FAST)', verdictClass: 'text-green', confidence: 92
-        },
-    ];
-    let currentDebateIdx = 0;
     var debateArchive = [];
 
     function renderDebate(archiveIdx) {
         var isArchive = typeof archiveIdx === 'number';
-        var scenario = isArchive ? debateArchive[archiveIdx] : DEBATE_SCENARIOS[currentDebateIdx % DEBATE_SCENARIOS.length];
+        var scenario = isArchive ? debateArchive[archiveIdx] : (debateArchive.length ? debateArchive[0] : null);
         var container = document.getElementById('dtContainer');
+        if (!scenario) {
+            container.innerHTML = '<div style="color:var(--dim);padding:2rem;text-align:center">No debate data available</div>';
+            document.getElementById('dtTimestamp').textContent = '--';
+            document.getElementById('dtSummary').innerHTML = '';
+            return;
+        }
         document.getElementById('dtTimestamp').textContent = scenario.trigger;
 
         // Rounds with score progress bars
@@ -748,14 +721,7 @@
             '</div>';
     }
 
-    function pushToArchive() {
-        var scenario = DEBATE_SCENARIOS[currentDebateIdx % DEBATE_SCENARIOS.length];
-        var now = new Date();
-        var ts = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2) + ':' + ('0' + now.getSeconds()).slice(-2);
-        debateArchive.unshift({ trigger: scenario.trigger, rounds: scenario.rounds, verdict: scenario.verdict, verdictClass: scenario.verdictClass, confidence: scenario.confidence, timestamp: ts });
-        if (debateArchive.length > 10) debateArchive.pop();
-        renderArchiveList(-1);
-    }
+
 
     function renderArchiveList(activeIdx) {
         var el = document.getElementById('dtArchive');
@@ -823,17 +789,19 @@
 
     var _debateLiveActive = false;
 
-    // Initial render with scenarios, then try live
-    pushToArchive();
+    // Initial render (empty until API responds)
     renderDebate();
 
-    // Try live debates first, fall back to scenario rotation
+    // Try live debates, show empty state if unavailable
     (async function() {
         var live = await fetchLiveDebate();
         _debateLiveActive = live;
         var statusEl = document.getElementById('dtLiveStatus');
         if (statusEl) statusEl.textContent = live ? 'LIVE' : 'Offline';
-        if (!live) console.log('[Cerebral] No live debates — using built-in scenarios');
+        if (!live) {
+            console.log('[Cerebral] No live debates available');
+            renderDebate();
+        }
     })();
 
     setInterval(async function() {
@@ -841,11 +809,7 @@
         _debateLiveActive = live;
         var statusEl = document.getElementById('dtLiveStatus');
         if (statusEl) statusEl.textContent = live ? 'LIVE' : 'Offline';
-        if (!live) {
-            currentDebateIdx++;
-            pushToArchive();
-            renderDebate();
-        }
+        if (!live) renderDebate();
     }, 10000);
     </script>
 
@@ -1437,57 +1401,24 @@
             return true;
         }
 
-        var _cbTick = 0;
-        function simulateCycle() {
-            // Prefer live data; fall back to deterministic oscillation
-            if (applyLiveDrawdown()) {
-                _cbLiveActive = true;
-                applyLiveCBData();
-                renderBreakers();
-                return;
-            }
-            _cbLiveActive = false;
-            _cbTick++;
-
-            // Deterministic oscillation for drawdown values
-            var ddWave = Math.sin(_cbTick * 0.25) * 0.15 + Math.sin(_cbTick * 0.11) * 0.08;
-            dailyDD = Math.max(0, Math.min(8, dailyDD + ddWave));
-            weeklyDD = Math.max(0, Math.min(15, weeklyDD + ddWave * 0.6));
-            oracleStale = Math.max(1, Math.min(45, Math.round(4 + Math.sin(_cbTick * 0.18) * 8)));
-
-            var dailyLim = 5;
-            if (dailyDD >= dailyLim) {
-                addAlert('Drawdown', 'critical', 'Daily DD ' + dailyDD.toFixed(1) + '% ≥ ' + dailyLim + '% — PAUSED', 'Pause All');
-                if (typeof showToast === 'function') showToast('Daily drawdown ' + dailyDD.toFixed(1) + '% — ALL STRATEGIES PAUSED', 'critical', 10000);
-            } else if (dailyDD >= dailyLim * 0.6) {
-                addAlert('Drawdown', 'warning', 'Daily DD ' + dailyDD.toFixed(1) + '% approaching limit', 'Monitor');
-            }
-
-            // Deterministic breaker cycling (every ~7 ticks one breaker increments, every ~10 one resets)
-            if (_cbTick % 7 === 0) {
-                var idx = _cbTick % 3;
-                BREAKERS[idx].current = Math.min(BREAKERS[idx].threshold, BREAKERS[idx].current + 1);
-                var ratio = BREAKERS[idx].current / BREAKERS[idx].threshold;
-                var sev = ratio >= 1 ? 'critical' : ratio >= 0.66 ? 'warning' : 'info';
-                addAlert('Breaker', sev, BREAKERS[idx].name + ': ' + BREAKERS[idx].current + '/' + BREAKERS[idx].threshold + ' triggers', ratio >= 1 ? 'TRIPPED' : 'Monitor');
-                if (ratio >= 1 && typeof showCircuitBreakerAlert === 'function') {
-                    showCircuitBreakerAlert(BREAKERS[idx].name, BREAKERS[idx].triggers[0], 'TRIPPED');
-                }
-            }
-            if (_cbTick % 10 === 0) {
-                var ri = (_cbTick / 10) % 3;
-                if (BREAKERS[ri].current > 0) {
-                    BREAKERS[ri].current--;
-                    addAlert('Recovery', 'info', BREAKERS[ri].name + ' auto-reset to ' + BREAKERS[ri].current + '/' + BREAKERS[ri].threshold, 'Resume');
-                }
-            }
-
-            renderBreakers();
-        }
-
         renderBreakers();
         renderAlertLog();
-        setInterval(simulateCycle, 6000);
+        setInterval(async function() {
+            var live = await fetchLiveCircuitBreakers();
+            if (live) {
+                _cbLiveActive = true;
+                applyLiveDrawdown();
+                applyLiveCBData();
+                renderBreakers();
+            } else {
+                _cbLiveActive = false;
+                var statusEl = document.getElementById('cbStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Waiting for circuit breaker data...';
+                    statusEl.className = 'text-dim';
+                }
+            }
+        }, 6000);
     })();
     </script>
 
@@ -2758,7 +2689,7 @@
     console.log('CORTEX Cerebral initialized');
     console.log('Regime Detection: Active (live API preferred, CoinGecko HMM fallback)');
     console.log('Decision Pipeline: Cycling');
-    console.log('Debate Theater: Live API + built-in scenarios fallback');
+    console.log('Debate Theater: Live API only');
     </script>
     <script src="js/ticker.js"></script>
     <script src="js/wallet.js"></script>
